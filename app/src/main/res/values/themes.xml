@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Friction" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/friction_primary</item>
+        <item name="colorPrimaryContainer">@color/friction_primary_dim</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/friction_accent</item>
+        <item name="colorSurface">@color/friction_surface</item>
+        <item name="colorOnSurface">@color/friction_text</item>
+        <item name="android:colorBackground">@color/friction_bg</item>
+        <item name="android:statusBarColor">@color/friction_bg</item>
+        <item name="android:navigationBarColor">@color/friction_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

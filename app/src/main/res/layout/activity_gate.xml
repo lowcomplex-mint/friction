@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/gateRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/friction_bg"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Phase 1: breathe + countdown -->
+    <LinearLayout
+        android:id="@+id/phaseBreathe"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <FrameLayout
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_gravity="center_horizontal">
+
+            <View
+                android:id="@+id/breathOuter"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_breath_outer" />
+
+            <View
+                android:id="@+id/breathInner"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_breath_inner" />
+
+            <TextView
+                android:id="@+id/countdownText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/friction_text"
+                android:textSize="48sp"
+                android:textStyle="bold"
+                tools:text="10" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/breathLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:letterSpacing="0.15"
+            android:text="@string/overlay_breathe"
+            android:textAllCaps="true"
+            android:textColor="@color/friction_text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/targetAppLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/friction_text"
+            android:textSize="16sp"
+            tools:text="Pausing before TikTok" />
+
+        <TextView
+            android:id="@+id/attemptsBreathe"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/friction_primary"
+            android:textSize="13sp"
+            tools:text="3 attempts in the last 24 hours" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/notNowButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="@string/overlay_not_now"
+            android:textAllCaps="false"
+            android:textColor="@color/friction_text_secondary" />
+    </LinearLayout>
+
+    <!-- Phase 2: confirm -->
+    <LinearLayout
+        android:id="@+id/phaseConfirm"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/confirmQuestion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.25"
+            android:textColor="@color/friction_text"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            tools:text="Do you really want to open TikTok?" />
+
+        <TextView
+            android:id="@+id/attemptsConfirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:textColor="@color/friction_primary"
+            android:textSize="14sp"
+            tools:text="3 attempts in the last 24 hours" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="@string/overlay_confirm_hint"
+            android:textColor="@color/friction_text_secondary"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- No primary (top, coloured); Yes secondary (bottom, muted) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/noButton"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/overlay_no"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/friction_primary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/yesButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/overlay_yes"
+            android:textAllCaps="false"
+            android:textColor="@color/friction_text_secondary" />
+    </LinearLayout>
+</FrameLayout>

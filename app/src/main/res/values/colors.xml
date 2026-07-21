@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="friction_bg">#0B0F14</color>
+    <color name="friction_surface">#151B24</color>
+    <color name="friction_surface_elevated">#1C2430</color>
+    <color name="friction_primary">#5B9FD4</color>
+    <color name="friction_primary_dim">#3A6A8F</color>
+    <color name="friction_accent">#7EC8A3</color>
+    <color name="friction_text">#E8EEF5</color>
+    <color name="friction_text_secondary">#8B9BB0</color>
+    <color name="friction_danger">#D47A7A</color>
+    <color name="friction_breath_ring">#5B9FD4</color>
+    <color name="friction_breath_fill">#1A3A52</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

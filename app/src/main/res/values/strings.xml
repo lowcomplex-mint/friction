@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Friction</string>
+    <string name="accessibility_service_label">Friction app guard</string>
+    <string name="accessibility_service_description">Friction watches when you open apps you chose to guard, and inserts a short breathing pause before they open. It never sends data off your device.</string>
+
+    <string name="setup_title">Setup</string>
+    <string name="setup_subtitle">Three switches. All required for Friction to work.</string>
+    <string name="permission_accessibility">Accessibility service</string>
+    <string name="permission_accessibility_hint">Detects when a guarded app opens. Enable “Friction app guard”.</string>
+    <string name="permission_overlay">Display over other apps</string>
+    <string name="permission_overlay_hint">Required for the instant black pause screen over other apps.</string>
+
+    <string name="permission_battery">Ignore battery optimizations</string>
+    <string name="permission_battery_hint">Stops OEMs from killing Friction in the background.</string>
+    <string name="status_on">On</string>
+    <string name="status_off">Off — tap to enable</string>
+    <string name="guarded_apps_title">Guarded apps</string>
+    <string name="guarded_apps_empty">No apps guarded yet. Pick some below.</string>
+    <string name="search_apps_hint">Search apps…</string>
+    <string name="settings_title">Settings</string>
+    <string name="setting_delay">Default delay (seconds)</string>
+    <string name="setting_confirm_hint">After the countdown you always get a Yes / No check: “Do you really want to open this?”</string>
+    <string name="overlay_breathe">Breathe</string>
+    <string name="overlay_not_now">Not now</string>
+    <string name="overlay_seconds">%1$ds</string>
+    <string name="opening_app">Opening %1$s</string>
+    <string name="pausing_before">Pause before %1$s</string>
+    <string name="overlay_really_want">Do you really want to open %1$s?</string>
+    <string name="overlay_confirm_hint">Take a second. You can always come back later.</string>
+    <string name="overlay_yes">Yes</string>
+    <string name="overlay_no">No</string>
+    <plurals name="attempts_last_24h">
+        <item quantity="one">%d attempt in the last 24 hours</item>
+        <item quantity="other">%d attempts in the last 24 hours</item>
+    </plurals>
+    <string name="all_set">All set — Friction is watching.</string>
+    <string name="missing_permissions">Finish setup above so Friction can run.</string>
+    <string name="a11y_enabled_not_live">Accessibility is on in Settings but the service is not running. Tap to open Accessibility, turn Friction off and on again.</string>
+</resources>
+
