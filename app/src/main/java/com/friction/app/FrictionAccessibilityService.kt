@@ -11,11 +11,10 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 
 /**
- * Instant curtain architecture:
+ * Instant curtain: show overlay first, then dispose target under it.
  *
- * 1. On guarded package window event → **show overlay immediately** (same callback)
- * 2. Then Home + kill **under** the black screen
- * 3. No 200ms delay, no GateActivity cold-start for the first frame
+ * Only gates when the user **enters** a guarded app from outside (launcher /
+ * another app). Same-package activity changes (e.g. Instagram → DMs) are ignored.
  */
 class FrictionAccessibilityService : AccessibilityService() {
 
@@ -28,43 +27,72 @@ class FrictionAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        overlay = OverlayController(this, accessibility = this)
-        GateSession.clear()
-        GraceTracker.clear()
+        try {
+            overlay = OverlayController(this, accessibility = this)
+            // Do not clear ForegroundTracker / GraceTracker on reconnect mid-session —
+            // only clear gate UI state.
+            if (overlay.isShowing) {
+                overlay.removeOverlay()
+            }
+            GateSession.clear()
 
-        serviceInfo = serviceInfo?.apply {
-            eventTypes =
-                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                    AccessibilityEvent.TYPE_WINDOWS_CHANGED
-            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            notificationTimeout = 0
-            flags = flags or
-                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            serviceInfo = serviceInfo?.apply {
+                // WINDOW_STATE_CHANGED is enough for activity switches; WINDOWS_CHANGED
+                // is very noisy on modern Android and caused extra work / OEM kill risk.
+                eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+                notificationTimeout = 100
+                flags = flags or
+                    AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            }
+            Log.i(TAG, "onServiceConnected")
+        } catch (t: Throwable) {
+            Log.e(TAG, "onServiceConnected failed", t)
         }
-        Log.i(TAG, "onServiceConnected")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
-        val type = event.eventType
-        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            type != AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        ) {
-            return
+        // Never throw out of here — uncaught exceptions put the service in Crashed state
+        // and force the user to re-toggle Accessibility (especially on HyperOS).
+        try {
+            handleEvent(event)
+        } catch (t: Throwable) {
+            Log.e(TAG, "onAccessibilityEvent error (swallowed)", t)
         }
+    }
+
+    private fun handleEvent(event: AccessibilityEvent?) {
+        if (event == null) return
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
         val packageName = event.packageName?.toString() ?: return
         if (packageName.isBlank()) return
 
         ensureOverlay()
 
-        val ignored =
-            packageName == this.packageName ||
-                packageName in IGNORED_PACKAGES ||
-                isLauncher(packageName)
+        val isOwn = packageName == this.packageName
+        val isIgnored = packageName in IGNORED_PACKAGES
+        val launcher = isLauncher(packageName)
+        val systemNoise = isOwn || isIgnored || launcher
 
-        GraceTracker.onForegroundPackage(packageName, ignored = ignored)
+        if (systemNoise) {
+            if (launcher) {
+                ForegroundTracker.onLeftApps()
+            }
+            GraceTracker.onForegroundPackage(
+                packageName,
+                isLauncher = launcher,
+                systemNoise = !launcher,
+            )
+            return
+        }
+
+        GraceTracker.onForegroundPackage(
+            packageName,
+            isLauncher = false,
+            systemNoise = false,
+        )
 
         // Curtain already up
         if (overlay.isShowing || GateSession.isShowing) {
@@ -72,24 +100,30 @@ class FrictionAccessibilityService : AccessibilityService() {
             if (gated != null && packageName == gated) {
                 overlay.onTargetResurfaced(packageName)
             }
+            // Still "in" this app for session tracking after Yes
+            ForegroundTracker.onUserApp(packageName)
             return
         }
 
-        if (ignored) return
+        // In-app navigation (Instagram feed → messages): same package, no new gate
+        val isNewAppEntry = ForegroundTracker.onUserApp(packageName)
+        if (!isNewAppEntry) {
+            return
+        }
+
         if (GraceTracker.isInGrace(packageName)) {
             Log.d(TAG, "skip $packageName — grace")
             return
         }
         if (!Prefs.isGuarded(this, packageName)) return
 
-        // Debounce only true double-fires (same package within 400ms)
         val now = SystemClock.elapsedRealtime()
-        if (now - lastBeginElapsed < 400L) {
+        if (now - lastBeginElapsed < 500L) {
             Log.d(TAG, "debounce $packageName")
             return
         }
 
-        Log.i(TAG, "GUARDED: $packageName — curtain first")
+        Log.i(TAG, "GUARDED entry: $packageName — curtain first")
         beginGate(packageName)
     }
 
@@ -98,7 +132,6 @@ class FrictionAccessibilityService : AccessibilityService() {
         Prefs.recordAttempt(this, packageName)
         val label = resolveLabel(packageName)
 
-        // 1) Curtain NOW — same call stack as the a11y event
         val shown = overlay.show(packageName, label)
         if (!shown) {
             Log.e(TAG, "overlay failed — falling back to activity path")
@@ -106,14 +139,16 @@ class FrictionAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 2) Dispose target under the curtain (next frame — UI already up)
         mainHandler.post {
-            overlay.disposeTargetUnderCurtain(packageName)
+            try {
+                overlay.disposeTargetUnderCurtain(packageName)
+            } catch (t: Throwable) {
+                Log.e(TAG, "dispose under curtain failed", t)
+            }
         }
     }
 
     private fun fallbackActivityGate(packageName: String, label: String) {
-        // Last resort if overlay permission missing
         performGlobalAction(GLOBAL_ACTION_HOME)
         AppTerminator.killBackground(this, packageName)
         GateSession.begin(packageName)
@@ -146,14 +181,18 @@ class FrictionAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        if (::overlay.isInitialized) overlay.removeOverlay()
+        try {
+            if (::overlay.isInitialized) overlay.removeOverlay()
+        } catch (_: Throwable) { }
         instance = null
         GateSession.clear()
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
-        if (::overlay.isInitialized) overlay.removeOverlay()
+        try {
+            if (::overlay.isInitialized) overlay.removeOverlay()
+        } catch (_: Throwable) { }
         instance = null
         GateSession.clear()
         super.onDestroy()
@@ -169,9 +208,13 @@ class FrictionAccessibilityService : AccessibilityService() {
     }
 
     private fun isLauncher(packageName: String): Boolean {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        val resolve = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        return resolve?.activityInfo?.packageName == packageName
+        return try {
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val resolve = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            resolve?.activityInfo?.packageName == packageName
+        } catch (_: Throwable) {
+            packageName == "com.miui.home" || packageName.contains("launcher")
+        }
     }
 
     companion object {
@@ -194,6 +237,9 @@ class FrictionAccessibilityService : AccessibilityService() {
             "com.miui.home",
             "com.mi.android.globallauncher",
             "com.google.android.apps.nexuslauncher",
+            "com.android.launcher3",
+            "com.miui.securitycenter",
+            "com.miui.powerkeeper",
         )
     }
 }

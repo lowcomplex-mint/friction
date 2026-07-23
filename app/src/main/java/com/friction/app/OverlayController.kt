@@ -193,6 +193,8 @@ class OverlayController(
     private fun proceed(packageName: String) {
         stopRekill()
         timer?.cancel()
+        // Stay in this app without re-gating until user leaves (DMs, etc.)
+        ForegroundTracker.onUserApp(packageName)
         GraceTracker.grantProceed(packageName)
         removeOverlay()
         try {
@@ -213,6 +215,8 @@ class OverlayController(
     private fun decline(packageName: String) {
         stopRekill()
         timer?.cancel()
+        // Left the app intentionally — next open should gate again after settle
+        ForegroundTracker.onLeftApps()
         GraceTracker.grantDecline(packageName)
         removeOverlay()
         accessibility?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)

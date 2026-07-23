@@ -12,7 +12,8 @@
     <string name="permission_overlay_hint">Required for the instant black pause screen over other apps.</string>
 
     <string name="permission_battery">Ignore battery optimizations</string>
-    <string name="permission_battery_hint">Stops OEMs from killing Friction in the background.</string>
+    <string name="permission_battery_hint">Stops OEMs from killing Friction in the background. On Xiaomi also set Autostart + No restrictions so it works after reboot without opening Friction first.</string>
+
     <string name="status_on">On</string>
     <string name="status_off">Off — tap to enable</string>
     <string name="guarded_apps_title">Guarded apps</string>
