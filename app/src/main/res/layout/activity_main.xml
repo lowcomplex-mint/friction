@@ -22,15 +22,20 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/nestedScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:isScrollContainer="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
+            android:id="@+id/contentColumn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:paddingBottom="48dp">
 
             <!-- Permission status banner -->
             <TextView
@@ -188,6 +193,7 @@
                 android:textStyle="bold" />
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/searchAppsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
@@ -201,7 +207,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/search_apps_hint"
-                    android:imeOptions="actionSearch"
+                    android:imeOptions="actionSearch|flagNoExtractUi"
                     android:inputType="text"
                     android:textColor="@color/friction_text"
                     android:textColorHint="@color/friction_text_secondary" />
@@ -214,6 +220,7 @@
                 android:layout_marginTop="8dp"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="8dp"
+                android:paddingBottom="24dp"
                 tools:itemCount="5"
                 tools:listitem="@layout/item_app_row" />
         </LinearLayout>

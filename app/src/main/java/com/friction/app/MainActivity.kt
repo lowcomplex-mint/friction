@@ -4,9 +4,12 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.friction.app.databinding.ActivityMainBinding
 import com.friction.app.databinding.ItemPermissionRowBinding
@@ -20,14 +23,53 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
+        setupKeyboardInsets()
         setupPermissionRows()
         setupSettings()
         setupAppList()
     }
+
+    /**
+     * Resize for IME + pad the scroll view so the search field can sit above the keyboard.
+     */
+    private fun setupKeyboardInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.nestedScroll) { view, insets ->
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bottomPad = if (ime.bottom > 0) ime.bottom + dp(12) else bars.bottom
+            view.updatePadding(bottom = bottomPad)
+            if (ime.bottom > 0 && binding.searchApps.hasFocus()) {
+                view.post { scrollSearchAboveKeyboard() }
+            }
+            insets
+        }
+
+        binding.searchApps.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                binding.nestedScroll.postDelayed({ scrollSearchAboveKeyboard() }, 120)
+                binding.nestedScroll.postDelayed({ scrollSearchAboveKeyboard() }, 350)
+            }
+        }
+    }
+
+    /** Scroll so the search bar sits near the bottom of the visible area (just above the IME). */
+    private fun scrollSearchAboveKeyboard() {
+        val scroll = binding.nestedScroll
+        val search = binding.searchAppsLayout
+        // search is a direct child of contentColumn, which is the NestedScrollView child
+        val targetBottom = search.bottom
+        val visible = scroll.height - scroll.paddingBottom
+        val desiredScrollY = targetBottom - visible + dp(8)
+        scroll.smoothScrollTo(0, desiredScrollY.coerceAtLeast(0))
+    }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 
     override fun onResume() {
         super.onResume()
@@ -167,6 +209,9 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
                 applyFilter(s?.toString().orEmpty())
+                if (binding.searchApps.hasFocus()) {
+                    binding.nestedScroll.post { scrollSearchAboveKeyboard() }
+                }
             }
         })
     }
