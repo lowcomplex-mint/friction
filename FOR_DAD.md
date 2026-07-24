@@ -14,15 +14,16 @@ seconds so you get a chance to choose intentionally.
 2. If Android asks: **Allow from this source** → Install.
 3. Open **Friction**.
 
-## 3. Turn on three switches (in the app, tap each red “Off” row)
+## 3. Turn on four setup rows (in the app)
 
 | # | What | What to enable |
 |---|------|----------------|
 | 1 | Accessibility | **Friction app guard** → On |
 | 2 | Display over other apps | **Allow** for Friction |
 | 3 | Battery | **Unrestricted** / ignore optimizations for Friction |
+| 4 | **Autostart (after reboot)** | Tap → **Open settings** → find Friction → turn **Autostart ON** → then **I enabled it** |
 
-**Xiaomi phones:** also set Battery → **No restrictions**, and turn on **Autostart** if you see it.
+**Xiaomi / HyperOS:** Autostart is required so Friction works after restart without opening the app first. Also set Battery → **No restrictions**.
 
 ## 4. Guard apps
 

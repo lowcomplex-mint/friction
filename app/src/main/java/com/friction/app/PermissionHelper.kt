@@ -129,4 +129,51 @@ object PermissionHelper {
             context.startActivity(fallback)
         }
     }
+
+    /**
+     * Opens OEM autostart / auto-launch settings when possible so Friction can
+     * run after reboot without the user opening the app first.
+     * Falls back to Friction's App Info page.
+     */
+    fun openAutostartSettings(context: Context) {
+        val pm = context.packageManager
+        val pkg = context.packageName
+        val candidates = listOf(
+            // Xiaomi / HyperOS / MIUI
+            componentIntent("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT),
+            componentIntent("com.miui.securitycenter", "com.miui.powercenter.PowerSettings"),
+            // Huawei / Honor
+            componentIntent("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+            componentIntent("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"),
+            // Oppo / Realme / ColorOS
+            componentIntent("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+            componentIntent("com.oplus.safecenter", "com.oplus.safecenter.permission.startup.StartupAppListActivity"),
+            componentIntent("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"),
+            // Vivo
+            componentIntent("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"),
+            componentIntent("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+            // Samsung (battery / never sleeping)
+            componentIntent("com.samsung.android.lool", "com.samsung.android.sm.battery.ui.BatteryActivity"),
+            componentIntent("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+            // OnePlus
+            componentIntent("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"),
+            // Generic: app details (user can find Autostart / battery there)
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(Uri.parse("package:$pkg")),
+        )
+        for (raw in candidates) {
+            try {
+                val intent = Intent(raw).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (intent.resolveActivity(pm) != null) {
+                    context.startActivity(intent)
+                    return
+                }
+            } catch (_: Exception) {
+                // try next OEM intent
+            }
+        }
+    }
+
+    private fun componentIntent(packageName: String, className: String): Intent =
+        Intent().setComponent(ComponentName(packageName, className))
 }

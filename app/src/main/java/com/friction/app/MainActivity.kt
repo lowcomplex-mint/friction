@@ -4,11 +4,13 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.friction.app.databinding.ActivityMainBinding
 import com.friction.app.databinding.ItemPermissionRowBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,6 +52,27 @@ class MainActivity : AppCompatActivity() {
             title = getString(R.string.permission_battery),
             hint = getString(R.string.permission_battery_hint),
         ) { PermissionHelper.openBatterySettings(this) }
+
+        setupRow(
+            binding.rowAutostart,
+            title = getString(R.string.permission_autostart),
+            hint = getString(R.string.permission_autostart_hint),
+        ) { showAutostartDialog() }
+    }
+
+    private fun showAutostartDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.autostart_dialog_title)
+            .setMessage(R.string.autostart_dialog_message)
+            .setPositiveButton(R.string.autostart_open_settings) { _, _ ->
+                PermissionHelper.openAutostartSettings(this)
+            }
+            .setNeutralButton(R.string.autostart_mark_done) { _, _ ->
+                Prefs.setAutostartSetupDone(this, true)
+                refreshPermissionUi()
+            }
+            .setNegativeButton(R.string.autostart_cancel, null)
+            .show()
     }
 
     private fun setupRow(
@@ -68,18 +91,19 @@ class MainActivity : AppCompatActivity() {
         val a11yLive = PermissionHelper.isAccessibilityLive(this)
         val overlay = PermissionHelper.isOverlayAllowed(this)
         val battery = PermissionHelper.isBatteryOptimizationExempt(this)
+        val autostartDone = Prefs.isAutostartSetupDone(this)
 
-        // Row shows On if user enabled us; banner warns if OEM left the service crashed
         setRowStatus(binding.rowAccessibility, a11yListed)
         setRowStatus(binding.rowOverlay, overlay)
         setRowStatus(binding.rowBattery, battery)
+        setAutostartRowStatus(binding.rowAutostart, autostartDone)
 
         when {
             a11yListed && !a11yLive -> {
                 binding.statusBanner.text = getString(R.string.a11y_enabled_not_live)
                 binding.statusBanner.setTextColor(ContextCompat.getColor(this, R.color.friction_danger))
             }
-            a11yListed && overlay && battery -> {
+            a11yListed && overlay && battery && autostartDone -> {
                 binding.statusBanner.text = getString(R.string.all_set)
                 binding.statusBanner.setTextColor(ContextCompat.getColor(this, R.color.friction_accent))
             }
@@ -97,6 +121,17 @@ class MainActivity : AppCompatActivity() {
             status.setTextColor(ContextCompat.getColor(this, R.color.friction_accent))
         } else {
             status.text = getString(R.string.status_off)
+            status.setTextColor(ContextCompat.getColor(this, R.color.friction_danger))
+        }
+    }
+
+    private fun setAutostartRowStatus(row: ItemPermissionRowBinding, done: Boolean) {
+        val status: TextView = row.permissionStatus
+        if (done) {
+            status.text = getString(R.string.status_autostart_done)
+            status.setTextColor(ContextCompat.getColor(this, R.color.friction_accent))
+        } else {
+            status.text = getString(R.string.status_autostart_todo)
             status.setTextColor(ContextCompat.getColor(this, R.color.friction_danger))
         }
     }

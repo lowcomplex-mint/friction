@@ -11,6 +11,7 @@ object Prefs {
     private const val KEY_GUARDED = "guarded_packages"
     private const val KEY_DELAY_SECONDS = "delay_seconds"
     private const val KEY_ATTEMPTS_PREFIX = "attempts_"
+    private const val KEY_AUTOSTART_DONE = "autostart_setup_done"
 
     const val DEFAULT_DELAY_SECONDS = 10
     private const val DAY_MS = 24L * 60L * 60L * 1000L
@@ -38,6 +39,14 @@ object Prefs {
 
     fun setDelaySeconds(context: Context, seconds: Int) {
         prefs(context).edit().putInt(KEY_DELAY_SECONDS, seconds.coerceIn(3, 60)).apply()
+    }
+
+    /** User confirmed they enabled OEM autostart (not queryable on most phones). */
+    fun isAutostartSetupDone(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_AUTOSTART_DONE, false)
+
+    fun setAutostartSetupDone(context: Context, done: Boolean) {
+        prefs(context).edit().putBoolean(KEY_AUTOSTART_DONE, done).apply()
     }
 
     // ── 24h attempt stats ──────────────────────────────────────────────

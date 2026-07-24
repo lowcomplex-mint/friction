@@ -5,14 +5,24 @@
     <string name="accessibility_service_description">Friction watches when you open apps you chose to guard, and inserts a short breathing pause before they open. It never sends data off your device.</string>
 
     <string name="setup_title">Setup</string>
-    <string name="setup_subtitle">Three switches. All required for Friction to work.</string>
+    <string name="setup_subtitle">Four steps. Do all of them so Friction works after reboot.</string>
     <string name="permission_accessibility">Accessibility service</string>
     <string name="permission_accessibility_hint">Detects when a guarded app opens. Enable “Friction app guard”.</string>
     <string name="permission_overlay">Display over other apps</string>
     <string name="permission_overlay_hint">Required for the instant black pause screen over other apps.</string>
 
     <string name="permission_battery">Ignore battery optimizations</string>
-    <string name="permission_battery_hint">Stops OEMs from killing Friction in the background. On Xiaomi also set Autostart + No restrictions so it works after reboot without opening Friction first.</string>
+    <string name="permission_battery_hint">Stops OEMs from killing Friction in the background. Set to Unrestricted / No restrictions.</string>
+
+    <string name="permission_autostart">Autostart (after reboot)</string>
+    <string name="permission_autostart_hint">Lets Friction run after phone restart without opening the app first. Critical on Xiaomi / HyperOS.</string>
+    <string name="status_autostart_todo">Tap for steps</string>
+    <string name="status_autostart_done">Done</string>
+    <string name="autostart_dialog_title">Enable Autostart</string>
+    <string name="autostart_dialog_message">So Friction works after reboot without opening it first:\n\n1. Tap “Open settings” below.\n2. Find Friction in the list.\n3. Turn Autostart / Auto-launch ON.\n\nXiaomi / HyperOS path if the button fails:\nSettings → Apps → Manage apps → Friction → Autostart → On\nAlso: Battery saver → No restrictions.\n\nSamsung: Device care → Battery → Background usage limits → Never sleeping apps → add Friction.</string>
+    <string name="autostart_open_settings">Open settings</string>
+    <string name="autostart_mark_done">I enabled it</string>
+    <string name="autostart_cancel">Later</string>
 
     <string name="status_on">On</string>
     <string name="status_off">Off — tap to enable</string>

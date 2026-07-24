@@ -97,6 +97,16 @@
                 <include
                     android:id="@+id/rowBattery"
                     layout="@layout/item_permission_row" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:background="#1AFFFFFF" />
+
+                <include
+                    android:id="@+id/rowAutostart"
+                    layout="@layout/item_permission_row" />
             </LinearLayout>
 
             <!-- Settings -->
