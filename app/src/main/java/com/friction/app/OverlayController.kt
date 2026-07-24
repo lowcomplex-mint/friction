@@ -23,11 +23,9 @@ import com.friction.app.databinding.OverlayFrictionBinding
 /**
  * Instant full-screen curtain ([TYPE_APPLICATION_OVERLAY]).
  *
- * **Order (OneSec-style):**
- * 1. addView black Friction UI on the same a11y callback (no delay)
- * 2. Then Home + kill the target *under* the curtain
- *
- * Never call Home before the overlay is up — that caused the visible exit jank.
+ * Order: show curtain first, then dispose target under it.
+ * On Yes: cancel all pending kills so we never kill the app we just allowed
+ * (that caused a re-gate loop, especially on X).
  */
 class OverlayController(
     private val context: Context,
@@ -40,7 +38,12 @@ class OverlayController(
     private var timer: CountDownTimer? = null
     private var breathAnimator: AnimatorSet? = null
     private var rekillRunnable: Runnable? = null
+    private var disposeRunnables: MutableList<Runnable> = mutableListOf()
     private var targetPackage: String? = null
+
+    /** After Yes, ignore kill/home stomps for this package briefly. */
+    @Volatile
+    private var allowPackage: String? = null
 
     @Volatile
     var isShowing: Boolean = false
@@ -53,6 +56,10 @@ class OverlayController(
             Log.e(TAG, "SYSTEM_ALERT_WINDOW not granted — cannot show curtain")
             return false
         }
+
+        // New gate cancels any leftover dispose kills from a previous session
+        cancelDisposeKills()
+        allowPackage = null
 
         val themed = ContextThemeWrapper(context, R.style.Theme_Friction)
         val b = OverlayFrictionBinding.inflate(LayoutInflater.from(themed))
@@ -94,7 +101,6 @@ class OverlayController(
             PixelFormat.OPAQUE,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            // Draw as high as a normal app overlay can
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -122,10 +128,38 @@ class OverlayController(
 
     /** Call after curtain is up — dispose target under the black screen. */
     fun disposeTargetUnderCurtain(packageName: String) {
+        if (!isShowing || targetPackage != packageName) return
+        if (allowPackage == packageName) return
         accessibility?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+        safeKill(packageName)
+        scheduleDisposeKill(packageName, 120L)
+        scheduleDisposeKill(packageName, 400L)
+    }
+
+    private fun scheduleDisposeKill(packageName: String, delayMs: Long) {
+        val r = Runnable {
+            if (allowPackage == packageName) return@Runnable
+            if (!isShowing && allowPackage != null) return@Runnable
+            // Only kill while curtain still up
+            if (isShowing && targetPackage == packageName) {
+                safeKill(packageName)
+            }
+        }
+        disposeRunnables.add(r)
+        mainHandler.postDelayed(r, delayMs)
+    }
+
+    private fun cancelDisposeKills() {
+        disposeRunnables.forEach { mainHandler.removeCallbacks(it) }
+        disposeRunnables.clear()
+    }
+
+    private fun safeKill(packageName: String) {
+        if (allowPackage == packageName) {
+            Log.d(TAG, "skip kill — package just allowed: $packageName")
+            return
+        }
         AppTerminator.killBackground(context, packageName)
-        mainHandler.postDelayed({ AppTerminator.killBackground(context, packageName) }, 120)
-        mainHandler.postDelayed({ AppTerminator.killBackground(context, packageName) }, 400)
     }
 
     private fun startRekill(packageName: String) {
@@ -133,7 +167,8 @@ class OverlayController(
         val r = object : Runnable {
             override fun run() {
                 if (!isShowing) return
-                AppTerminator.killBackground(context, packageName)
+                if (allowPackage == packageName) return
+                safeKill(packageName)
                 mainHandler.postDelayed(this, 900L)
             }
         }
@@ -191,12 +226,16 @@ class OverlayController(
     }
 
     private fun proceed(packageName: String) {
+        // Critical: stop killing the app we're about to open
+        allowPackage = packageName
         stopRekill()
+        cancelDisposeKills()
         timer?.cancel()
-        // Stay in this app without re-gating until user leaves (DMs, etc.)
+
         ForegroundTracker.onUserApp(packageName)
         GraceTracker.grantProceed(packageName)
-        removeOverlay()
+        removeOverlay(keepAllow = true)
+
         try {
             val launch = context.packageManager.getLaunchIntentForPackage(packageName)
             if (launch != null) {
@@ -210,15 +249,21 @@ class OverlayController(
         } catch (e: Exception) {
             Log.e(TAG, "launch failed", e)
         }
+
+        // Keep allowPackage for a few seconds so late dispose/rekill callbacks no-op
+        mainHandler.postDelayed({
+            if (allowPackage == packageName) allowPackage = null
+        }, 5_000L)
     }
 
     private fun decline(packageName: String) {
+        allowPackage = null
         stopRekill()
+        cancelDisposeKills()
         timer?.cancel()
-        // Left the app intentionally — next open should gate again after settle
         ForegroundTracker.onLeftApps()
         GraceTracker.grantDecline(packageName)
-        removeOverlay()
+        removeOverlay(keepAllow = false)
         accessibility?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
         AppTerminator.goHome(context)
         AppTerminator.killBackground(context, packageName)
@@ -227,8 +272,9 @@ class OverlayController(
         Log.i(TAG, "No/Not now — declined $packageName")
     }
 
-    fun removeOverlay() {
+    fun removeOverlay(keepAllow: Boolean = false) {
         stopRekill()
+        cancelDisposeKills()
         timer?.cancel()
         timer = null
         breathAnimator?.cancel()
@@ -242,13 +288,14 @@ class OverlayController(
         isShowing = false
         targetPackage = null
         GateSession.clear()
+        if (!keepAllow) allowPackage = null
     }
 
-    /** Target clawed on top while curtain should be up — re-stomp only. */
     fun onTargetResurfaced(packageName: String) {
         if (!isShowing) return
         if (targetPackage != packageName) return
-        AppTerminator.killBackground(context, packageName)
+        if (allowPackage == packageName) return
+        safeKill(packageName)
         accessibility?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
     }
 

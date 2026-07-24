@@ -105,14 +105,16 @@ class FrictionAccessibilityService : AccessibilityService() {
             return
         }
 
-        // In-app navigation (Instagram feed → messages): same package, no new gate
-        val isNewAppEntry = ForegroundTracker.onUserApp(packageName)
-        if (!isNewAppEntry) {
+        // After Yes: never re-gate this package until user leaves to launcher
+        if (GraceTracker.isInGrace(packageName)) {
+            ForegroundTracker.onUserApp(packageName)
+            Log.d(TAG, "skip $packageName — proceed/decline grace")
             return
         }
 
-        if (GraceTracker.isInGrace(packageName)) {
-            Log.d(TAG, "skip $packageName — grace")
+        // In-app navigation (Instagram feed → messages): same package, no new gate
+        val isNewAppEntry = ForegroundTracker.onUserApp(packageName)
+        if (!isNewAppEntry) {
             return
         }
         if (!Prefs.isGuarded(this, packageName)) return
